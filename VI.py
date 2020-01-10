@@ -5,7 +5,7 @@ import numpy
 def isConvergence(previous_map_value, map_value, map_row, map_col):
     for row in range(map_row):
         for col in range(map_col):
-            if map_value[row][col] - previous_map_value[row][col] >= 0.0001:
+            if abs(map_value[row][col] - previous_map_value[row][col]) >= 0.0001:
                 return 0
     return 1
 

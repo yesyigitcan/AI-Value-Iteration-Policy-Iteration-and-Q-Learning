@@ -1,11 +1,18 @@
 from copy import deepcopy
 from tabulate import tabulate
 import numpy
-def isConvergence(previous_map_policy, map_policy):
+def isConvergencePolicy(previous_map_policy, map_policy):
     if previous_map_policy == map_policy:
         return 1
     else:
         return 0
+
+def isConvergenceValue(previous_map_value, map_value, map_row, map_col):
+    for row in range(map_row):
+        for col in range(map_col):
+            if abs(map_value[row][col] - previous_map_value[row][col]) >= 0.0001:
+                return 0
+    return 1
 
 def policy_iteration(input, r, d, p):
     transition = [[-1,0],[1,0],[0,1],[0,-1]] # up,down,right,left
@@ -26,6 +33,7 @@ def policy_iteration(input, r, d, p):
                 table_headers.append("s" + str(counter))
                 counter += 1
 
+    table_headers.append("valIter")
     map_value = []
 
 
@@ -45,19 +53,20 @@ def policy_iteration(input, r, d, p):
                 map_value[row][col] = input[row][col][1]
 
     counter = 0
-    while isConvergence(previous_map_policy, map_policy) == False and counter < MAX_ITER_NUMBER:
+    while isConvergencePolicy(previous_map_policy, map_policy) == False and counter < MAX_ITER_NUMBER:
         previous_map_policy = deepcopy(map_policy)
-        previous_map_value = deepcopy(map_value)
         table_row = ["it" + str(counter)]
-
-
+        iterationCounter = 0
+        previous_map_value = deepcopy(map_value)
+        previous_map_value[0][0] = map_value[0][0] + 10  # make them not equal at first step
+        while isConvergenceValue(previous_map_value, map_value, map_row, map_col) == False and iterationCounter < MAX_ITER_NUMBER:
+            previous_map_value = deepcopy(map_value)
+            for row, col in states:
+                map_value[row][col] = r + d * getValue(previous_map_value,previous_map_policy[(row,col)],p,row,col)
+            iterationCounter += 1
         for row, col in states:
-            map_value[row][col] = getValue(previous_map_value,previous_map_policy[(row,col)],row,col)
-            table_row.append(previous_map_value[row][col])
-
-        for row, col in states:
-            new_value = r + d * max(utilityValueList(map_value, p, row, col))
-            map_value[row][col] = new_value
+            table_row.append(map_value[row][col])
+        table_row.append(iterationCounter)
 
         for row,col in states:
             map_policy.update({(row,col): getArrowIndex(map_value,row,col)})
@@ -124,30 +133,48 @@ def utilityValueList(input, p, i, j):
     return utility_scores
 
 
-def getValue(map_value, arrowIndex, currentRow, currentCol):
+def getValue(map_value, arrowIndex, p, currentRow, currentCol):
+    pf = p
+    po = float((1 - p) / 2)
     rowSize = len(map_value)
     colSize = len(map_value[0])
 
     if arrowIndex == 0:
+        temp1 = 0.0
         if currentRow - 1 > -1:
-            return map_value[currentRow-1][currentCol]
-        else:
-            return 0.0
+            temp1 += pf * map_value[currentRow-1][currentCol]
+            if currentCol + 1 < colSize:
+                temp1 += po * map_value[currentRow][currentCol + 1]
+            if currentCol - 1 > - 1:
+                temp1 += po * map_value[currentRow][currentCol - 1]
+        return temp1
     elif arrowIndex == 1:
+        temp1 = 0.0
         if currentRow + 1 < rowSize:
-            return map_value[currentRow + 1][currentCol]
-        else:
-            return 0.0
+            temp1 += pf * map_value[currentRow + 1][currentCol]
+            if currentCol + 1 < colSize:
+                temp1 += po * map_value[currentRow][currentCol + 1]
+            if currentCol - 1 > -1:
+                temp1 += po * map_value[currentRow][currentCol - 1]
+        return temp1
     elif arrowIndex == 2:
+        temp1 = 0.0
         if currentCol + 1 < colSize:
-            return map_value[currentRow][currentCol + 1]
-        else:
-            return 0.0
+            temp1 += pf * map_value[currentRow][currentCol + 1]
+            if currentRow - 1 > -1:
+                temp1 += po * map_value[currentRow - 1][currentCol]
+            if currentRow + 1 < rowSize:
+                temp1 += po * map_value[currentRow + 1][currentCol]
+        return temp1
     elif arrowIndex == 3:
+        temp1 = 0.0
         if currentCol - 1 > -1:
-            return map_value[currentRow][currentCol-1]
-        else:
-            return 0.0
+            temp1 += pf * map_value[currentRow][currentCol-1]
+            if currentRow - 1 > -1:
+                temp1 += po * map_value[currentRow - 1][currentCol]
+            if currentRow + 1 < rowSize:
+                temp1 += po * map_value[currentRow + 1][currentCol]
+        return temp1
     else:
         print("Error in PI")
 

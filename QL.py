@@ -44,7 +44,6 @@ def qlearning(input, r , d, e, a, start_location, N):
             previous_value = map_value[current_location[0]][current_location[1]]
             map_value[current_location[0]][current_location[1]] = (1-a) * previous_value + a * (r + d * temp[next_state])
             states_move.update({(current_location[0],current_location[1]):deepcopy(temp)})
-
             while not isLegalMove(map_value,input,next_state,current_location[0],current_location[1]):
                 temp[numpy.argmax(temp)] = -math.inf
                 next_state = numpy.argmax(temp)
