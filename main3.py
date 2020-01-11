@@ -11,15 +11,15 @@ map_matrix = [
 ]
 
 r = -0.01
-d = 0.9
-p = 0.8
+d = 1
+p = 0.5
 a = 0.1
 e = 0
-N = 1000
+N = 100000
 
 value_iteration(map_matrix, r=r, d=d, p=p)
 
 policy_iteration(map_matrix, r=r, d=d, p=p)
 
-qlearning(map_matrix, r=r, d=d, a=a, e=e, N=N, start_location=[2, 0])
+#qlearning(map_matrix, r=r, d=d, a=a, e=e, N=N, start_location=[2, 0])
 

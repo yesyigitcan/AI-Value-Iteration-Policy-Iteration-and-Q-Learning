@@ -43,16 +43,20 @@ def policy_iteration(input, r, d, p):
     map_policy = {} # row, col, policy
     previous_map_policy = deepcopy(map_policy)
 
+    table_row = ["it0"]
     for row, col in states:
-        map_policy.update({tuple([row,col]) : numpy.random.randint(0,4)})
-        #map_policy.update({tuple([row, col]): 3})
+        #map_policy.update({tuple([row,col]) : numpy.random.randint(0,4)})
+        table_row.append(map_value[row][col])
+        map_policy.update({tuple([row, col]): 0})
+    table_row.append("-")
+    table_data.append(table_row)
 
     for row in range(map_row):
         for col in range(map_col):
             if input[row][col][0] == "T":
                 map_value[row][col] = input[row][col][1]
 
-    counter = 0
+    counter = 1
     while isConvergencePolicy(previous_map_policy, map_policy) == False and counter < MAX_ITER_NUMBER:
         previous_map_policy = deepcopy(map_policy)
         table_row = ["it" + str(counter)]

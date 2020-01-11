@@ -34,23 +34,31 @@ def qlearning(input, r , d, e, a, start_location, N):
     for step in range(N):
         current_location = [start_location[0], start_location[1]]
         while True:
-            temp = []
+
             if input[current_location[0]][current_location[1]][0] == "T":
                 break
-            for arrowIndex in range(4):
-                new_value = getValue(map_value,arrowIndex,current_location[0],current_location[1])
-                temp.append(new_value)
-            next_state = numpy.argmax(temp)
-            previous_value = map_value[current_location[0]][current_location[1]]
-            map_value[current_location[0]][current_location[1]] = (1-a) * previous_value + a * (r + d * temp[next_state])
-            states_move.update({(current_location[0],current_location[1]):deepcopy(temp)})
-            while not isLegalMove(map_value,input,next_state,current_location[0],current_location[1]):
-                temp[numpy.argmax(temp)] = -math.inf
-                next_state = numpy.argmax(temp)
+
+            now_state_list = states_move[(current_location[0],current_location[1])]
+            next_state = numpy.argmax(now_state_list)
 
             if numpy.random.rand() <= e:
                 next_state = numpy.random.randint(0,4)
 
+            straight_randomness = numpy.random.rand()
+            if 0.8 < straight_randomness and straight_randomness < 0.9:
+                next_state = ((next_state - 1) + 4) % 4
+            elif 0.9 < straight_randomness:
+                next_state = (next_state + 1) % 4
+
+            now_state_list[next_state] = (1-a) * now_state_list[next_state] + a * (r + d * getValue(input,states_move,next_state,current_location[0],current_location[1]))
+
+            states_move.update({(current_location[0],current_location[1]):now_state_list})
+
+            '''
+            while not isLegalMove(map_value,input,next_state,current_location[0],current_location[1]):
+                temp[numpy.argmax(temp)] = -math.inf
+                next_state = numpy.argmax(temp)
+            '''
 
             if next_state == 0:
                 if current_location[0] - 1 > -1 and input[current_location[0]-1][current_location[1]][0] != "B":
@@ -150,28 +158,40 @@ def utilityValueList(input, p, i, j):
     return utility_scores
 
 
-def getValue(map_value, arrowIndex, currentRow, currentCol):
-    rowSize = len(map_value)
-    colSize = len(map_value[0])
+def getValue(input, states_move, arrowIndex, currentRow, currentCol):
+    rowSize = len(input)
+    colSize = len(input[0])
 
     if arrowIndex == 0:
         if currentRow - 1 > -1:
-            return map_value[currentRow-1][currentCol]
+            if input[currentRow-1][currentCol][0] == "T" or input[currentRow-1][currentCol][0] == "B":
+                return input[currentRow-1][currentCol][1]
+            else:
+                return numpy.max(states_move[(currentRow-1,currentCol)])
         else:
             return 0.0
     elif arrowIndex == 1:
         if currentRow + 1 < rowSize:
-            return map_value[currentRow + 1][currentCol]
+            if input[currentRow + 1][currentCol][0] == "T" or input[currentRow + 1][currentCol][0] == "B":
+                return input[currentRow + 1][currentCol][1]
+            else:
+                return numpy.max(states_move[(currentRow+1,currentCol)])
         else:
             return 0.0
     elif arrowIndex == 2:
         if currentCol + 1 < colSize:
-            return map_value[currentRow][currentCol + 1]
+            if input[currentRow][currentCol + 1][0] == "T" or input[currentRow][currentCol + 1][0] == "B":
+                return input[currentRow][currentCol + 1][1]
+            else:
+                return numpy.max(states_move[(currentRow,currentCol + 1)])
         else:
             return 0.0
     elif arrowIndex == 3:
         if currentCol - 1 > -1:
-            return map_value[currentRow][currentCol-1]
+            if input[currentRow][currentCol-1][0] == "T" or input[currentRow][currentCol-1][0] == "B":
+                return input[currentRow][currentCol-1][1]
+            else:
+                return numpy.max(states_move[(currentRow,currentCol-1)])
         else:
             return 0.0
     else:
@@ -219,6 +239,8 @@ def isLegalMove(map_value, input, arrowIndex,row, col):
         print("Error during isLegalMove in QL")
 
     return 0
+
+
 
 
 
