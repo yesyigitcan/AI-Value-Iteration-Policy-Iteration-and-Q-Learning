@@ -10,7 +10,7 @@ def isConvergence(previous_map_value, map_value, map_row, map_col):
     return 1
 
 
-def value_iteration(input, r, d, p):
+def value_iteration(input, r, d, p, showPolicy = 0):
     MAX_ITER_NUMBER = 100000
     map_row = len(input)
     map_col = len(input[0])
@@ -64,6 +64,21 @@ def value_iteration(input, r, d, p):
 
 
     print(tabulate(table_data,headers=table_headers))
+    if showPolicy:
+        table_data = []
+
+        for row in range(map_row):
+            table_row = []
+            for col in range(map_col):
+                if input[row][col][0] == "E":
+                    table_row.append(["UP","DOWN","RIGHT","LEFT"][getArrowIndex(map_value,row,col)])
+                else:
+                    table_row.append(input[row][col][0])
+            table_data.append(table_row)
+        print(tabulate(table_data))
+
+
+    return map_value
 
 
 def utilityValueList(input, p, i, j):
@@ -109,3 +124,28 @@ def utilityValueList(input, p, i, j):
         temp += po * input[i + 1][j]
     utility_scores.append(temp)
     return utility_scores
+
+
+
+
+def getArrowIndex(map_value, currentRow, currentCol):
+    rowSize = len(map_value)
+    colSize = len(map_value[0])
+    temp = []
+    if currentRow - 1 > -1:
+        temp.append(map_value[currentRow-1][currentCol])
+    else:
+        temp.append(0.0)
+    if currentRow + 1 < rowSize:
+        temp.append(map_value[currentRow + 1][currentCol])
+    else:
+        temp.append(0.0)
+    if currentCol + 1 < colSize:
+        temp.append(map_value[currentRow][currentCol+1])
+    else:
+        temp.append(0.0)
+    if currentCol - 1 > -1:
+        temp.append(map_value[currentRow][currentCol-1])
+    else:
+        temp.append(0.0)
+    return numpy.argmax(temp)

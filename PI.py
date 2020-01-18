@@ -14,7 +14,7 @@ def isConvergenceValue(previous_map_value, map_value, map_row, map_col):
                 return 0
     return 1
 
-def policy_iteration(input, r, d, p):
+def policy_iteration(input, r, d, p, showPolicy = 0):
     transition = [[-1,0],[1,0],[0,1],[0,-1]] # up,down,right,left
     MAX_ITER_NUMBER = 100000
     numpy.random.seed(62)
@@ -79,6 +79,19 @@ def policy_iteration(input, r, d, p):
 
         counter += 1
     print(tabulate(table_data,headers=table_headers))
+    if showPolicy:
+        table_data = []
+
+        for row in range(map_row):
+            table_row = []
+            for col in range(map_col):
+                if input[row][col][0] == "E":
+                    table_row.append(["UP","DOWN","RIGHT","LEFT"][getArrowIndex(map_value,row,col)])
+                else:
+                    table_row.append(input[row][col][0])
+            table_data.append(table_row)
+        print(tabulate(table_data))
+    return map_policy
 
 
 

@@ -1,8 +1,9 @@
 import numpy
 from copy import deepcopy
 import math
+import matplotlib.pyplot as plt
 from tabulate import tabulate
-def qlearning(input, r , d, e, a, start_location, N):
+def qlearning(input, r , d, e, a, start_location, N, vi_map_value, pi_map_policy, isAlphaByCount = 0, showPolicy = 0):
     numpy.random.seed(62)
 
     table_data = []
@@ -14,44 +15,97 @@ def qlearning(input, r , d, e, a, start_location, N):
     map_value = []
     states = []         # states location
     states_move = {}    # moving up down right left value
+    if isAlphaByCount:
+        states_counter = {}
     counter = 0
+    states_size = 0
     for row in range(map_row):
         row_temp = []
         for col in range(map_col):
             if input[row][col][0] == "E":
+                states_size += 1
                 states.append([row,col])
                 table_headers.append("s" + str(counter))
                 counter += 1
+                if isAlphaByCount:
+                    states_counter.update({(row, col): list(numpy.zeros(4))})
                 states_move.update({(row,col): list(numpy.zeros(4))})
             row_temp.append(input[row][col][1])
 
         map_value.append(row_temp)
 
-
-
-
+    errors_x = []
+    vi_errors_y = []
+    pi_errors_y = []
 
     for step in range(N):
         current_location = [start_location[0], start_location[1]]
-        while True:
+        if step % 100 == 0:
+            temp = 0.0
+            temp2 = 0
+            for row, col in states:
+                real_policy = pi_map_policy[(row,col)]
+                if real_policy != numpy.argmax(states_move[(row,col)]):
+                    temp2 += 1
+                temp += (vi_map_value[row][col] - max(states_move[(row,col)]))**2
+            temp = temp / states_size
+            errors_x.append(step)
+            vi_errors_y.append(temp)
+            pi_errors_y.append(temp2)
 
+
+
+        step_counter = 0  # This variable is used to warn user if it looks like there is infinite loop
+        while True:
+            if step_counter == 100000:
+                print("Warning: Q-Learning Achieves 100K Step")
+            elif step_counter == 500000:
+                print("Warning: Q-Learning Achieves 500K Step. It may be infinite loop!")
+            elif step_counter == 1000000:
+                print("Warning: Q-Learning Achieves 1M Step. This is the last warning!!")
+
+            # If it arrives at target, go back to start point
             if input[current_location[0]][current_location[1]][0] == "T":
                 break
 
+
+            # Value of the directions for current location
             now_state_list = states_move[(current_location[0],current_location[1])]
+
+            # Next state is max value direction
             next_state = numpy.argmax(now_state_list)
 
-            if numpy.random.rand() <= e:
+            # If random value less than e, then pick a random direction
+            if numpy.random.rand() < e:
                 next_state = numpy.random.randint(0,4)
 
+            # This variable is used to prevent conflict of new randomness
+            temp_next_state = next_state
+
+            # If random value between 0 and 0.8 get value of straight, else if 0.8-0.9 get left value and if larger than
+            # 0.9 then take right value
             straight_randomness = numpy.random.rand()
             if 0.8 < straight_randomness and straight_randomness < 0.9:
-                next_state = ((next_state - 1) + 4) % 4
+                temp_next_state = [3,2,0,1][next_state]
             elif 0.9 < straight_randomness:
-                next_state = (next_state + 1) % 4
+                temp_next_state = [2,3,1,0][next_state]
 
-            now_state_list[next_state] = (1-a) * now_state_list[next_state] + a * (r + d * getValue(input,states_move,next_state,current_location[0],current_location[1]))
+            # Calculate the value of direction
+            if isAlphaByCount:
+                temp_states_counter = states_counter[(current_location[0],current_location[1])]
+                temp_states_counter[next_state] += 1
+                a = 1.0 / temp_states_counter [next_state]
+                states_counter.update({(current_location[0],current_location[1]) : temp_states_counter})
+                now_state_list[next_state] = (1 - a) * now_state_list[next_state] + a * (
+                            r + d * getValue(input, states_move, temp_next_state, current_location[0],
+                                             current_location[1]))
+            else:
+                now_state_list[next_state] = (1-a) * now_state_list[next_state] + a * (r + d * getValue(input,states_move,temp_next_state,current_location[0],current_location[1]))
 
+            # Agent is set to move to next state which determined by last straight randomness
+            next_state = temp_next_state
+
+            # Save new value
             states_move.update({(current_location[0],current_location[1]):now_state_list})
 
             '''
@@ -59,7 +113,7 @@ def qlearning(input, r , d, e, a, start_location, N):
                 temp[numpy.argmax(temp)] = -math.inf
                 next_state = numpy.argmax(temp)
             '''
-
+            # If next state is block then don't move else move to next state
             if next_state == 0:
                 if current_location[0] - 1 > -1 and input[current_location[0]-1][current_location[1]][0] != "B":
                     current_location[0] = current_location[0] - 1
@@ -74,7 +128,23 @@ def qlearning(input, r , d, e, a, start_location, N):
                     current_location[1] = current_location[1] - 1
             else:
                 print("Error during QLearning at line 65")
+            step_counter += 1
 
+    temp = 0.0
+    temp2 = 0
+    for row, col in states:
+        real_policy = pi_map_policy[(row, col)]
+        if real_policy != numpy.argmax(states_move[(row, col)]):
+            temp2 += 1
+        temp += (vi_map_value[row][col] - max(states_move[(row, col)])) ** 2
+    temp = temp / states_size
+    errors_x.append(step)
+    vi_errors_y.append(temp)
+    pi_errors_y.append(temp2)
+
+
+
+    # Save actions in table
     for i in range(4):
         table_row = ["Action " + str(i)]
         for row, col in states:
@@ -83,6 +153,30 @@ def qlearning(input, r , d, e, a, start_location, N):
         table_data.append(table_row)
     print(tabulate(table_data,headers=table_headers))
 
+    if showPolicy:
+        table_data = []
+
+        for row in range(map_row):
+            table_row = []
+            for col in range(map_col):
+                if input[row][col][0] == "E":
+                    table_row.append(["UP","DOWN","RIGHT","LEFT"][numpy.argmax(states_move[(row,col)])])
+                else:
+                    table_row.append(input[row][col][0])
+            table_data.append(table_row)
+        print(tabulate(table_data))
+
+    plt.title("Q-Learning Errors by Utility")
+    plt.xlabel("Step")
+    plt.ylabel("Mean Squared Error")
+    plt.plot(errors_x, vi_errors_y)
+    plt.show()
+
+    plt.title("Q-Learning Errors by Policy")
+    plt.xlabel("Step")
+    plt.ylabel("Error Count")
+    plt.plot(errors_x, pi_errors_y)
+    plt.show()
 
 
 
